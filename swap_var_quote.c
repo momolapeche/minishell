@@ -6,7 +6,7 @@
 /*   By: rmenegau <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/10/23 04:03:23 by rmenegau          #+#    #+#             */
-/*   Updated: 2016/10/23 08:44:59 by rmenegau         ###   ########.fr       */
+/*   Updated: 2016/10/23 18:15:19 by rmenegau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,23 +54,50 @@ int		swap_quote_len(char const *line, char const quote, int *i, char **env)
 	return (len);
 }
 
+char	*in_env(char *s, char **env)
+{
+	int		i;
+	int		j;
+
+	i = 0;
+	while (env[i])
+	{
+		j = 0;
+		while (env[i][j] == s[j] && s[j])
+			j++;
+		if (!s[j] && env[i][j] == '=')
+			break ;
+		i++;
+	}
+	return (env[i]);
+}
+
 int		arg_new_len(char const *arg, char **env)
 {
-	int	len;
-	int	i;
+	int		len;
+	int		i;
+	char	*tmp;
 
 	i = 0;
 	len = 0;
 	while (arg[i])
 	{
 		if ((arg[i] == '\'' || arg[i] == '\"'))
-			len += swap_quote_len(arg, arg[i - 1], &i, env);
-		if (arg[i] == '$')
+			len += swap_quote_len(arg, arg[i], &i, env);
+		else if (arg[i] == '$')
 			len += swap_var_len(arg, &i, env);
 		else
 		{
-			i++;
-			len++;
+			if (arg[i] == '~' && len == 0 && ++i)
+			{
+				tmp = in_env("HOME", env);
+				len += tmp ? ft_strlen(&tmp[5]) : 0;
+			}
+			else
+			{
+				i++;
+				len++;
+			}
 		}
 	}
 	return (len);
@@ -104,6 +131,7 @@ void	fill_ret(char *ret, char const *arg, int const len, char **env)
 	int		i;
 	int		j;
 	char	quote;
+	char	*tmp;
 
 	i = 0;
 	j = 0;
@@ -124,7 +152,15 @@ void	fill_ret(char *ret, char const *arg, int const len, char **env)
 			i++;
 		}
 		else
-			ret[j++] = arg[i++];
+		{
+			if (arg[i] == '~' && j == 0 && ++i && (tmp = in_env("HOME", env)))
+			{
+				ft_memcpy(&ret[j], &tmp[5], ft_strlen(tmp) - 5);
+				j += ft_strlen(&tmp[5]);
+			}
+			else
+				ret[j++] = arg[i++];
+		}
 	}
 	ret[j] = '\0';
 }
